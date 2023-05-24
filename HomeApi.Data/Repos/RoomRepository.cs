@@ -1,7 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using HomeApi.Data.Models;
+using HomeApi.Data.Queries;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace HomeApi.Data.Repos
 {
@@ -25,6 +28,13 @@ namespace HomeApi.Data.Repos
             return await _context.Rooms.Where(r => r.Name == name).FirstOrDefaultAsync();
         }
         /// <summary>
+        ///  Найти комнату по ID
+        /// </summary>
+        public async Task<Room> GetRoomById(Guid Id)
+        {
+            return await _context.Rooms.Where(r => r.Id == Id).FirstOrDefaultAsync();
+        }
+        /// <summary>
         ///  Найти все комнаты
         /// </summary>
         public async Task<Room[]> GetRooms()
@@ -46,16 +56,24 @@ namespace HomeApi.Data.Repos
         /// <summary>
         ///  Перенастроить комнату
         /// </summary>
-        public async Task ChangeRoom(Room room)
+        public async Task ChangeRoom(Room room, UpdateRoomQuery newRoom)
         {
-            var entry = _context.Entry(room);
-            if (entry.State != EntityState.Detached)
-            {
-                await room;
-            }
-                
+            room.Name = newRoom.NewName;
+            room.Area = newRoom.NewArea;
+            room.GasConnected = newRoom.NewGasConnected;
+            room.Voltage = newRoom.NewVoltage;
+          
 
+            // Добавляем в базу 
+            var entry = _context.Entry(room);
+            if (entry.State == EntityState.Detached)
+                _context.Rooms.Update(room);
+
+            // Сохраняем изменения в базе 
             await _context.SaveChangesAsync();
         }
+
+
+       
     }
 }

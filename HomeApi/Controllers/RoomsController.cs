@@ -1,8 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using AutoMapper;
 using HomeApi.Contracts.Models.Devices;
 using HomeApi.Contracts.Models.Rooms;
 using HomeApi.Data.Models;
+using HomeApi.Data.Queries;
 using HomeApi.Data.Repos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -58,21 +60,24 @@ namespace HomeApi.Controllers
 
         [HttpPut]
         [Route("")]
-        public async Task<IActionResult> Change([FromBody] AddRoomRequest request)
+        public async Task<IActionResult> Change(
+            [FromRoute] Guid id,
+            [FromBody] ChangeRoomRequest request)
         {
-            var existingRoom = await _repository.GetRoomByName(request.Name);
-            if (existingRoom == null)
+            var room = await _repository.GetRoomById(id);
+            if (room == null)
             {
-                
+                return StatusCode(400, $"Ошибка: Комната не подключена. Сначала подключите комнату!");
             }
             else
             {
-                var newRoom = _mapper.Map<AddRoomRequest, Room>(request);
-                await _repository.AddRoom(newRoom);
-                return StatusCode(201, $"Комната {request.Name} добавлена!");
+
+                await _repository.ChangeRoom(
+                room,
+                new UpdateRoomQuery(request.NewName, request.NewArea, request.NewGasConnected, request.NewVoltage));
             }
 
-            return StatusCode(409, $"Ошибка: Комната {request.Name} уже существует.");
+            return StatusCode(200, $"Комната обновлена! Имя - {room.Name}");
         }
     }
 }
